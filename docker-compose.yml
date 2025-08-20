@@ -1,0 +1,125 @@
+version: '3.8'
+
+# Define a custom network with restricted access
+networks:
+  trading_net:
+    driver: bridge
+    internal: true  # Prevents direct external access
+  monitoring_net:
+    driver: bridge
+
+services:
+  trading-bot:
+    build: .
+    container_name: iq-720-trading-bot
+    user: trading
+    volumes:
+      - type: bind
+        source: ./data
+        target: /home/trading/data
+        read_only: false
+      - type: bind
+        source: ./logs
+        target: /home/trading/logs
+        read_only: false
+      - type: bind
+        source: ./backtest_results
+        target: /home/trading/backtest_results
+        read_only: false
+      - type: bind
+        source: ./backups
+        target: /home/trading/backups
+        read_only: false
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8080:8080"  # Only allow local access
+    restart: unless-stopped
+    networks:
+      - trading_net
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true  # Prevent privilege escalation
+    cap_drop:
+      - ALL  # Drop all capabilities
+    read_only: true  # Make root filesystem read-only
+    tmpfs:
+      - /tmp  # Temporary filesystem for runtime files
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  backup-scheduler:
+    image: mcuadros/ofelia:latest
+    container_name: trading-bot-backup-scheduler
+    user: "1000:1000"  # Run as non-root
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: ./scripts/backup
+        target: /app/scripts/backup
+        read_only: true
+    command: daemon --docker
+    networks:
+      - trading_net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    labels:
+      ofelia.job-run.backup.schedule: "@daily"
+      ofelia.job-run.backup.container: trading-bot
+      ofelia.job-run.backup.command: "/app/scripts/backup/backup.sh"
+
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: trading-bot-monitoring
+    user: "nobody"  # Run as non-root
+    volumes:
+      - type: bind
+        source: ./monitoring/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+      - type: volume
+        source: prometheus_data
+        target: /prometheus
+    ports:
+      - "127.0.0.1:9090:9090"  # Only allow local access
+    networks:
+      - monitoring_net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    restart: unless-stopped
+    depends_on:
+      - trading-bot
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trading-bot-grafana
+    volumes:
+      - ./monitoring/grafana:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - monitoring
+
+volumes:
+  prometheus_data:  # Persistent volume for Prometheus data
