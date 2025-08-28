@@ -51,8 +51,8 @@ tail -f bot.log  # Ensure your code writes logs to this file
 ```
 
 #### 7. Compliance Safeguards
-- Randomize delays between signals (2-10 sec) to mimic human behavior.
-- Avoid trading 24/7 – sync with London session hours (8AM-12PM GMT).
+- No artificial delays needed for manual trading
+- Focus on highest probability setups during active market hours
 
 ---
 

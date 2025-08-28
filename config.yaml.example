@@ -1,0 +1,87 @@
+# IQ 720 Trading Bot Configuration
+
+# Telegram notifications
+telegram:
+  token: ''  # Your Telegram bot token
+  chat_id: ''  # Your chat ID for notifications
+
+# Data source API credentials
+data_source:
+  api_key: ''  # Your API key
+  api_secret: ''  # Your API secret
+
+# Trading parameters
+trading:
+  max_positions: 3  # Maximum number of concurrent positions
+  risk_per_trade: 0.01  # Risk per trade as fraction of account (1%)
+  default_stop_loss: 0.02  # Default stop loss (2%)
+  default_take_profit: 0.04  # Default take profit (4%)
+  max_daily_trades: 5  # Maximum trades per day
+  min_signal_interval_minutes: 30  # Minimum time between signals
+
+# Machine learning settings
+use_ml: true  # Enable machine learning predictions
+min_confidence: 0.65  # Minimum confidence to take a trade
+ml:
+  model_path: 'models/'  # Path to ML models
+  confidence_threshold: 0.65  # Confidence threshold for ML predictions
+  use_ensemble: true  # Use ensemble of models
+  lookback_periods: 100  # Lookback periods for feature generation
+  sequence_length: 20  # Sequence length for LSTM/CNN models
+
+# News filter settings
+news_filter:
+  enabled: true  # Enable news filtering
+  buffer_minutes: 15  # Buffer around news events
+  importance_threshold: 'medium'  # Minimum news importance to filter
+
+# Market regime detection
+market_regime:
+  detection_method: 'hmm'  # 'hmm', 'volatility', or 'breakout'
+  window_size: 100  # Window size for regime detection
+  regime_change_threshold: 0.6  # Threshold for regime change detection
+
+# Correlation analysis settings
+correlation_analysis:
+  enabled: true  # Enable correlation analysis
+  correlation_lookback_days: 30  # Days of data to use for correlation calculation
+  correlation_update_interval: 6  # Update interval in hours
+  high_correlation_threshold: 0.85  # Threshold for high correlation
+  correlation_impact: 0.2  # Impact of correlation on confidence (0-1)
+
+# Pairs to trade - Full list of available pairs
+trading_pairs:
+  # Major forex pairs
+  - 'EUR/USD'
+  - 'GBP/USD'
+  - 'USD/JPY'
+  - 'AUD/USD'
+  - 'USD/CAD'
+  - 'USD/CHF'
+  - 'NZD/USD'
+  # Minor forex pairs
+  - 'EUR/GBP'
+  - 'EUR/JPY'
+  - 'GBP/JPY'
+  - 'AUD/JPY'
+  - 'EUR/AUD'
+  - 'GBP/AUD'
+  # Exotic pairs
+  - 'USD/SGD'
+  - 'USD/ZAR'
+  - 'USD/TRY'
+  - 'USD/MXN'
+  # Commodity pairs
+  - 'USD/NOK'
+  - 'USD/SEK'
+  - 'USD/DKK'
+  - 'AUD/CAD'
+  - 'NZD/CAD'
+  # Cross pairs
+  - 'EUR/CAD'
+  - 'GBP/CAD'
+  - 'EUR/NZD'
+  - 'GBP/NZD'
+
+# Enable session-specific pair filtering
+session_specific_pairs: true

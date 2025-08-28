@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-IQ 720 Trading Bot - Main Entry Point (Analysis-Only Mode)
-This script runs a simplified version of the trading bot that only analyzes the market
-and sends signals via Telegram without executing trades.
+IQ 720 Trading Bot - Main Entry Point with ML Capabilities
+This script runs an enhanced version of the trading bot that analyzes the market
+using both traditional indicators and machine learning predictions.
 """
 import os
 import time
@@ -10,12 +10,15 @@ import logging
 import signal
 import sys
 import random
+import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 
-# For the analysis-only mode, we don't need all components
-# from .data_fetcher import IQOptionDataFetcher
-# from .signal_generator import SignalGenerator
-# from .trade_executor import TradeExecutor
+# Import components
+from .data_fetcher import IQOptionDataFetcher
+from .signal_generator import SignalGenerator
+# from .trade_executor import TradeExecutor  # Commented for analysis-only mode
+from .utils.ml_predictor import MLPredictor
 from telegram import Bot
 import requests
 import asyncio
@@ -85,28 +88,96 @@ Volume: {indicators['volume']:.2f}x average
 
 
 class TradingBot:
-    def __init__(self):
-        self.running = True
+    def __init__(self, config_path='config.yaml', analysis_mode=False):
+        """Initialize the trading bot with configuration"""
+        self.config = self.load_config(config_path)
+        self.analysis_mode = analysis_mode
         
-        # Load environment variables
-        load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+        # Create session manager
+        from src.utils.session_manager import SessionManager
+        self.session_manager = SessionManager(self.config)
         
-        # Initialize Telegram notifier
-        token = os.getenv('TELEGRAM_BOT_TOKEN')
-        chat_id = os.getenv('TELEGRAM_CHAT_ID')
+        # Set up system components
+        self.setup_components()
         
-        if not token or not chat_id:
-            logger.critical("Telegram credentials not found in .env file")
+        # Trading state
+        self.active = False
+        self.last_signal_time = None
+        
+        # ML configuration
+        self.use_ml = self.config.get('use_ml', False)
+        if self.use_ml:
+            self.initialize_ml_predictor()
+        
+        logger.info("IQ-720 Trading Bot initialized")
+    
+    def initialize_ml_predictor(self):
+        """Initialize the ML predictor component if ML is enabled"""
+        try:
+            # Import here to avoid dependency issues if ML is not enabled
+            import importlib
+            
+            # Check if ml_predictor module is available
+            try:
+                ml_module = importlib.import_module("src.utils.ml_predictor")
+                
+                # Get ML configuration
+                ml_config = self.config.get('ml', {})
+                model_path = ml_config.get('model_path', 'models/ensemble_model')
+                
+                # Initialize ML predictor
+                self.ml_predictor = ml_module.MLPredictor(
+                    config=ml_config,
+                    model_path=model_path
+                )
+                
+                # Load models
+                self.ml_predictor.load_models()
+                logger.info("ML predictor initialized successfully")
+                
+            except (ImportError, ModuleNotFoundError) as e:
+                logger.warning(f"ML predictor module not available: {e}")
+                logger.warning("Running without ML capabilities")
+                self.use_ml = False
+                
+        except Exception as e:
+            logger.error(f"Error initializing ML predictor: {e}")
+            logger.warning("Continuing without ML capabilities")
+            self.use_ml = False
+    
+    def setup_components(self):
+        """Set up the necessary components for the trading bot"""
+        try:
+            # Data fetcher for retrieving market data
+            from src.data_fetcher import DataFetcher
+            self.data_fetcher = DataFetcher(self.config)
+            
+            # Signal generator to identify trading opportunities
+            from src.signal_generator import SignalGenerator
+            self.signal_generator = SignalGenerator(self.config)
+            
+            # Trade executor for placing trades (if not in analysis mode)
+            if not self.analysis_mode:
+                from src.trade_executor import TradeExecutor
+                self.trade_executor = TradeExecutor(self.config)
+            
+            # Telegram notification service
+            # Using the simplified version defined in this file
+            telegram_token = self.config.get('telegram', {}).get('token', '')
+            telegram_chat_id = self.config.get('telegram', {}).get('chat_id', '')
+            self.telegram = TelegramNotifier(telegram_token, telegram_chat_id)
+            
+            # Set running flag
+            self.running = True
+            self.last_status_time = None
+            
+            # Register signal handlers
+            signal.signal(signal.SIGINT, self.handle_exit)
+            signal.signal(signal.SIGTERM, self.handle_exit)
+            
+        except Exception as e:
+            logger.error(f"Error setting up components: {e}")
             sys.exit(1)
-        
-        self.telegram = TelegramNotifier(token, chat_id)
-        
-        # Register signal handlers
-        signal.signal(signal.SIGINT, self.handle_exit)
-        signal.signal(signal.SIGTERM, self.handle_exit)
-        
-        # Initialize last status time
-        self.last_status_time = None
     
     def handle_exit(self, signum, frame):
         """Handle exit signals gracefully"""
@@ -123,46 +194,86 @@ class TradingBot:
 
     def analyze_market_and_generate_signal(self):
         """
-        Simplified market analysis function that simulates signal generation
-        In a real implementation, this would analyze actual market data
+        Analyze market data and generate trading signals using both traditional indicators and ML
         """
-        # In analysis mode, we'll generate simulated signals
-        # This is where your actual signal generation logic would go
+        # Get latest market data for common forex pairs
+        assets = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD']
+        signals = []
         
-        # Simulate whether we found a good opportunity (aimed at 20-30 per day = ~1.5% chance per minute)
-        # This means we check every minute and have about a 1.5% chance of sending a signal
-        opportunity_found = random.random() < 0.015
-        
-        if opportunity_found:
-            # Simulate signal parameters
-            direction = random.choice(['BUY', 'SELL'])
-            assets = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD']
-            asset = random.choice(assets)
-            
-            # Generate confidence between 0.7 and 0.98
-            confidence = round(random.uniform(0.7, 0.98), 2)
-            
-            # Generate simulated indicators
-            indicators = {
-                'rsi': random.uniform(20, 80),
-                'macd': random.uniform(-0.002, 0.002),
-                'volume': random.uniform(0.8, 3.0)
-            }
-            
-            # Adjust indicators based on direction to make them more realistic
-            if direction == 'BUY':
-                indicators['rsi'] = min(70, max(40, indicators['rsi']))
-                indicators['macd'] = max(0, indicators['macd'])
-            else:  # SELL
-                indicators['rsi'] = min(60, max(30, indicators['rsi']))
-                indicators['macd'] = min(0, indicators['macd'])
-            
-            logger.info(f"Signal generated: {direction} {asset} with {confidence:.2f} confidence")
-            
-            # Send the signal via Telegram
-            self.telegram.send_signal(direction, asset, confidence, indicators)
-            
-            return True
+        for asset in assets:
+            try:
+                # Get candle data
+                candle_data = self.data_fetcher.get_candles(asset)
+                if not candle_data or len(candle_data) < 50:  # Need sufficient data for analysis
+                    continue
+                    
+                # Convert to DataFrame for ML processing
+                df = pd.DataFrame(candle_data)
+                
+                # Process with traditional signal generator
+                signal = self.signal_generator.add_candle(candle_data[-1])
+                
+                # If no traditional signal, continue to next asset
+                if not signal:
+                    continue
+                    
+                # Use ML to validate signal if available
+                ml_prediction = None
+                ml_confidence = 0.0
+                ml_details = {}
+                
+                if self.use_ml and hasattr(self, 'ml_predictor'):
+                    try:
+                        # Get ML prediction
+                        prediction, confidence, details = self.ml_predictor.predict(df)
+                        
+                        # Get market regime from signal generator
+                        market_regime = self.signal_generator.current_regime.name if self.signal_generator.current_regime else "UNKNOWN"
+                        
+                        # Validate ML prediction against market conditions
+                        is_valid, adjusted_confidence, validation_details = self.ml_predictor.validate_prediction(
+                            prediction, 
+                            confidence, 
+                            market_regime, 
+                            "unknown",  # Session info not available in basic version
+                            details.get('is_anomaly', False)
+                        )
+                        
+                        ml_prediction = "BUY" if prediction else "SELL"
+                        ml_confidence = adjusted_confidence
+                        ml_details = {
+                            "prediction": ml_prediction,
+                            "confidence": ml_confidence,
+                            "top_features": details.get("top_features", {})
+                        }
+                        
+                        # If ML and traditional signals agree, boost confidence
+                        if (signal.direction == "BUY" and ml_prediction == "BUY") or \
+                           (signal.direction == "SELL" and ml_prediction == "SELL"):
+                            signal.confidence = (signal.confidence * 0.6) + (ml_confidence * 0.4)
+                            logger.info(f"ML prediction confirms {signal.direction} signal, boosting confidence to {signal.confidence:.2f}")
+                        else:
+                            # ML contradicts traditional signal, reduce confidence
+                            signal.confidence = signal.confidence * 0.8
+                            logger.info(f"ML prediction contradicts traditional signal, reducing confidence")
+                    
+                    except Exception as e:
+                        logger.error(f"Error using ML predictor: {e}")
+                
+                # Add ML details to indicators
+                signal.indicators['ml_prediction'] = ml_prediction
+                signal.indicators['ml_confidence'] = ml_confidence
+                if ml_details.get("top_features"):
+                    signal.indicators['ml_top_features'] = list(ml_details.get("top_features", {}).keys())[:3]
+                
+                # Only send signals with sufficient confidence
+                if signal.confidence >= 0.7:
+                    logger.info(f"Signal generated: {signal.direction} {signal.asset} with {signal.confidence:.2f} confidence")
+                    self.telegram.send_signal(signal.direction, signal.asset, signal.confidence, signal.indicators)
+                    return True
+                    
+            except Exception as e:
+                logger.error(f"Error analyzing {asset}: {e}")
         
         return False
 
@@ -209,9 +320,63 @@ class TradingBot:
         logger.info("Bot shutdown complete")
 
 
+    def load_config(self, config_path):
+        """Load configuration from file or use default values"""
+        try:
+            # Try to load from file
+            import yaml
+            
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as file:
+                    config = yaml.safe_load(file)
+                logger.info(f"Configuration loaded from {config_path}")
+                return config
+            else:
+                logger.warning(f"Config file {config_path} not found, using default configuration")
+                
+                # Default configuration
+                default_config = {
+                    'telegram': {
+                        'token': os.environ.get('TELEGRAM_TOKEN', ''),
+                        'chat_id': os.environ.get('TELEGRAM_CHAT_ID', ''),
+                    },
+                    'data_source': {
+                        'api_key': os.environ.get('API_KEY', ''),
+                        'api_secret': os.environ.get('API_SECRET', ''),
+                    },
+                    'trading': {
+                        'max_positions': 3,
+                        'risk_per_trade': 0.02,
+                        'default_stop_loss': 0.03,
+                        'default_take_profit': 0.06,
+                    },
+                    'use_ml': False,
+                    'ml': {
+                        'model_path': 'models/',
+                        'confidence_threshold': 0.7,
+                        'use_ensemble': True
+                    }
+                }
+                
+                return default_config
+                
+        except Exception as e:
+            logger.error(f"Error loading configuration: {e}")
+            # Basic default configuration as fallback
+            return {
+                'telegram': {'token': '', 'chat_id': ''},
+                'data_source': {'api_key': '', 'api_secret': ''},
+                'trading': {'max_positions': 3, 'risk_per_trade': 0.02},
+                'use_ml': False
+            }
+
+
 if __name__ == "__main__":
+    # Load environment variables from .env file if present
+    load_dotenv()
+    
     try:
-        bot = TradingBot()
+        bot = TradingBot(analysis_mode=True)
         bot.run()
     except Exception as e:
         logger.critical(f"Fatal error: {str(e)}")

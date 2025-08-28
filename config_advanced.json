@@ -1,0 +1,143 @@
+{
+    "iqoption": {
+        "email": "your_email@example.com",
+        "password": "your_password"
+    },
+    "account": {
+        "initial_balance": 1000,
+        "account_type": "PRACTICE"
+    },
+    "trading": {
+        "pairs": [
+            "EURUSD", "GBPUSD", "USDJPY", "EURGBP", "AUDUSD", 
+            "EURJPY", "USDCAD", "GBPJPY", "EURUSD-OTC", "GBPUSD-OTC"
+        ],
+        "timeframe": 5,
+        "check_interval": 60,
+        "max_active_trades": 3,
+        "use_dynamic_selection": true,
+        "history_path": "trade_history.json",
+        "save_history": true
+    },
+    "market_availability": {
+        "timezone": "UTC",
+        "regular_trading_days": [0, 1, 2, 3, 4],
+        "otc_trading_days": [0, 1, 2, 3, 4, 5, 6],
+        "regular_market_open": "00:00",
+        "regular_market_close": "23:59",
+        "otc_market_open": "00:00",
+        "otc_market_close": "23:59",
+        "holidays": [
+            "2023-12-25",
+            "2024-01-01"
+        ],
+        "market_definitions": {
+            "forex": {
+                "regular": [
+                    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD",
+                    "USDCHF", "NZDUSD", "EURGBP", "EURJPY", "GBPJPY"
+                ],
+                "otc": [
+                    "EURUSD-OTC", "EURGBP-OTC", "USDCHF-OTC", "EURJPY-OTC",
+                    "NZDUSD-OTC", "GBPUSD-OTC", "GBPJPY-OTC", "USDJPY-OTC"
+                ]
+            }
+        }
+    },
+    "dynamic_asset_selector": {
+        "max_pairs_per_session": 10,
+        "selection_criteria": [
+            "volatility", 
+            "trend_strength", 
+            "volume"
+        ],
+        "session_pairs": {
+            "asian": [
+                "USDJPY", "AUDUSD", "NZDUSD", "AUDJPY", "EURJPY", "GBPJPY"
+            ],
+            "london": [
+                "EURUSD", "GBPUSD", "EURGBP", "GBPCHF", "GBPCAD", "GBPAUD"
+            ],
+            "new_york": [
+                "EURUSD", "GBPUSD", "USDCAD", "USDJPY", "USDCHF"
+            ]
+        }
+    },
+    "ml_predictor": {
+        "models": [
+            "random_forest",
+            "xgboost",
+            "lightgbm",
+            "ensemble"
+        ],
+        "feature_sets": [
+            "price_patterns",
+            "indicators",
+            "volatility",
+            "sentiment"
+        ],
+        "confidence_threshold": 0.65,
+        "use_probability_calibration": true,
+        "use_uncertainty_quantification": true,
+        "model_path": "models/"
+    },
+    "trading_strategy": {
+        "trading_mode": "balanced",
+        "min_confidence": 0.65,
+        "min_correlation_confirmation": 0.6,
+        "use_market_regime": true,
+        "check_market_availability": true,
+        "position_sizing_method": "fractional_kelly",
+        "exit_strategy_type": "combined",
+        "max_active_trades": 3,
+        "required_correlation_pairs": 2
+    },
+    "exit_strategies": {
+        "default_stop_loss": 0.02,
+        "default_take_profit": 0.04,
+        "volatility_multiplier": 2.0,
+        "trailing_activation": 0.5,
+        "trailing_step": 0.2
+    },
+    "position_sizing": {
+        "default_risk_per_trade": 0.02,
+        "max_risk_per_trade": 0.05,
+        "min_trade_size": 1.0,
+        "kelly_fraction": 0.5,
+        "max_exposure": 0.25,
+        "drawdown_scaling_enabled": true,
+        "max_consecutive_losses": 3
+    },
+    "correlation": {
+        "lookback_period": 100,
+        "min_correlation": 0.6,
+        "update_interval": 3600,
+        "correlation_pairs": [
+            "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD",
+            "USDCHF", "NZDUSD", "EURGBP", "EURJPY", "GBPJPY",
+            "EURUSD-OTC", "GBPUSD-OTC", "USDJPY-OTC", "EURJPY-OTC"
+        ]
+    },
+    "market_regime": {
+        "lookback_periods": [20, 50, 100],
+        "update_interval": 300,
+        "volatility_thresholds": {
+            "low": 0.5,
+            "high": 2.0
+        }
+    },
+    "telegram": {
+        "enabled": false,
+        "token": "your_telegram_bot_token",
+        "chat_id": "your_telegram_chat_id"
+    },
+    "email": {
+        "enabled": false,
+        "smtp_server": "smtp.gmail.com",
+        "port": 587,
+        "username": "your_email@gmail.com",
+        "password": "your_app_password",
+        "from_email": "your_email@gmail.com",
+        "to_email": "notification_recipient@example.com"
+    }
+}

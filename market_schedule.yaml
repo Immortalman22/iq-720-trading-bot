@@ -1,0 +1,100 @@
+# IQ Option Markets Schedule Configuration
+
+# This file contains the trading schedule information for IQ Option markets
+# Used by the market availability manager to determine when markets are open
+
+# General trading hours
+forex:
+  regular:
+    sunday_open: "22:00"   # UTC time, forex opens Sunday evening
+    friday_close: "22:00"  # UTC time, forex closes Friday evening
+    weekend: false         # Regular forex markets closed on weekends
+    
+  otc:
+    sunday_open: "00:00"   # UTC time
+    friday_close: "23:59"  # UTC time
+    weekend: true          # OTC markets available on weekends
+    weekend_open: "00:00"  # UTC time
+    weekend_close: "23:59" # UTC time
+
+# Market availability by pair
+# Key is the asset pair, values are availability flags
+pairs:
+  EUR/USD:
+    regular: true
+    otc: true
+  GBP/USD:
+    regular: true
+    otc: true
+  USD/JPY:
+    regular: true
+    otc: true
+  AUD/USD:
+    regular: true
+    otc: true
+  USD/CAD:
+    regular: true
+    otc: true
+  USD/CHF:
+    regular: true
+    otc: true
+  NZD/USD:
+    regular: true
+    otc: true
+  EUR/GBP:
+    regular: true
+    otc: true
+  EUR/JPY:
+    regular: true
+    otc: true
+  GBP/JPY:
+    regular: true
+    otc: true
+  AUD/JPY:
+    regular: true
+    otc: true
+  EUR/AUD:
+    regular: true
+    otc: true
+  GBP/AUD:
+    regular: true
+    otc: true
+  USD/SGD:
+    regular: true
+    otc: false
+  USD/ZAR:
+    regular: true
+    otc: false
+  USD/TRY:
+    regular: true
+    otc: false
+  USD/MXN:
+    regular: true
+    otc: false
+  USD/NOK:
+    regular: true
+    otc: false
+  USD/SEK:
+    regular: true
+    otc: false
+  USD/DKK:
+    regular: true
+    otc: false
+  AUD/CAD:
+    regular: true
+    otc: true
+  NZD/CAD:
+    regular: true
+    otc: false
+  EUR/CAD:
+    regular: true
+    otc: true
+  GBP/CAD:
+    regular: true
+    otc: false
+  EUR/NZD:
+    regular: true
+    otc: false
+  GBP/NZD:
+    regular: true
+    otc: false
